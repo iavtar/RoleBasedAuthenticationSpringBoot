@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.iavtar.authservice.service.UserServiceImpl;
 
@@ -32,6 +33,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter{
 	
 	@Autowired
 	private UserServiceImpl userDetailsService;
+	
+	@Bean
+	public JWTAuthenticationFilter jwtAuthenticationFilter() {
+		return new JWTAuthenticationFilter();
+	}
 	
 	@Override
 	protected void configure(AuthenticationManagerBuilder auth) throws Exception {
@@ -62,6 +68,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter{
 		.antMatchers("/api/admin/**").permitAll()
 		.antMatchers("/api/auth/**").permitAll()
 		.anyRequest().authenticated();
+		
+		http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 	}
 
 	

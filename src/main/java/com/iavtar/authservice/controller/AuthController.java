@@ -1,5 +1,7 @@
 package com.iavtar.authservice.controller;
 
+import java.io.UnsupportedEncodingException;
+
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +41,7 @@ public class AuthController {
 	@Autowired
 	private AuthenticationManager authenticationManager;
 	
-	@Value("${app.jwt.toke.prefix}")
+	@Value("${app.jwt.token.prefix}")
 	private String tokenPrefix;
 	
 	@PostMapping("/signup")	
@@ -57,7 +59,7 @@ public class AuthController {
 	}
 	
 	@PostMapping("/signin")
-	public ResponseEntity<?> signin(@Valid @RequestBody SignInRequest request, BindingResult result){
+	public ResponseEntity<?> signin(@Valid @RequestBody SignInRequest request, BindingResult result) throws UnsupportedEncodingException{
 		
 		ResponseEntity<?> requestErrors = requestValidationService.requestValidator(result);
 		JWTTokenResponse response = new JWTTokenResponse();

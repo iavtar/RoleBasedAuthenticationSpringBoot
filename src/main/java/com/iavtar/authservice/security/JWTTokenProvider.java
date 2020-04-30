@@ -17,39 +17,46 @@ import com.iavtar.authservice.entity.User;
 import com.iavtar.authservice.model.UserPrincipal;
 import com.iavtar.authservice.repository.UserRepository;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.SignatureException;
+import io.jsonwebtoken.UnsupportedJwtException;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
+@Slf4j
 public class JWTTokenProvider {
 
 	@Value("${app.jwt.secret}")
 	private String jwtSecret;
-	
+
 	@Value("${app.jwt.expiration_in_ms}")
 	private long expirationTime;
-	
+
 	@Value("${app.jwt.header_string}")
 	private String headerString;
-	
+
 	@Autowired
 	private UserRepository userRepository;
-	
-	//Generate the token
-	public String generateToken(Authentication authentication) {
+
+	// Generate the token
+	public String generateToken(Authentication authentication){
 		UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
 		Date date = new Date(System.currentTimeMillis());
 		Date expiryDate = new Date(date.getTime() + expirationTime);
 		User user = userRepository.findById(userPrincipal.getId()).orElse(null);
 		Set<Role> roles = null;
-		if(!(user == null)) {
+		if (!(user == null)) {
 			roles = user.getRoles();
 		}
 		List<String> authList = new ArrayList<>();
-		for(Role role : roles) {
+		for (Role role : roles) {
 			authList.add(role.getName());
 		}
-		
+
 		Map<String, Object> claims = new HashMap<>();
 		claims.put("userId", userPrincipal.getId());
 		claims.put("userName", userPrincipal.getUsername());
@@ -57,13 +64,37 @@ public class JWTTokenProvider {
 		claims.put("lastName", userPrincipal.getLastName());
 		claims.put("email", userPrincipal.getEmail());
 		claims.put("authList", authList);
-		
-		return Jwts.builder()
-				.setClaims(claims)
-				.setIssuedAt(new Date())
-				.setExpiration(expiryDate)
+
+		return Jwts.builder().setClaims(claims).setIssuedAt(new Date()).setExpiration(expiryDate)
 				.signWith(SignatureAlgorithm.HS512, jwtSecret).compact();
-		
+
+	}
+
+	// validate token
+	public boolean validateToken(String token) {
+		try {
+			Jwts.parser().setSigningKey(jwtSecret).parseClaimsJwt(token);
+			return true;
+		} catch (SignatureException ex) {
+			log.error("Invalid JWT Signature");
+		} catch (MalformedJwtException ex) {
+			log.error("Invalid JWT token");
+		} catch (ExpiredJwtException ex) {
+			log.error("Expired JWT token");
+		} catch (UnsupportedJwtException ex) {
+			log.error("Unsupported JWT token");
+		} catch (IllegalArgumentException ex) {
+			log.error("JWT claims string is empty");
+		}
+
+		return false;
+	}
+
+	//Get username from the token
+	public String getUsernameFromJWT(String token) {
+		Claims claims = Jwts.parser().setSigningKey(jwtSecret).parseClaimsJwt(token).getBody();
+		String username = (String) claims.get("userName");
+		return username;
 	}
 	
 }
