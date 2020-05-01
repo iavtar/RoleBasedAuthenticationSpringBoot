@@ -10,6 +10,7 @@ import lombok.Setter;
 @Setter
 public class SignUpRequest {
 
+	@NotBlank(message = "username is required")
 	private String username;
 	@Email(message = "email is required")
 	private String email;
